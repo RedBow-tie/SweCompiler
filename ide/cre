@@ -1,0 +1,127 @@
+
+CREATE TABLE proj
+(
+    name text NOT NULL,
+    info text,
+    created date DEFAULT now(),
+    type character(4),
+    major integer,
+    minor integer,
+    build integer,
+    proj_id integer DEFAULT nextval('proj_id'),
+    folder text,
+    changed date DEFAULT now(),
+    created date DEFAULT now(),    
+    CONSTRAINT proj_pkey PRIMARY KEY (name)
+);
+
+CREATE TABLE func
+(
+    func_id integer,
+    name text NOT NULL,    
+    major integer default 0,
+    minor integer default 0,
+    build integer default 0,
+    src text,
+    sort integer default 0,
+    type character(4),
+    changed date DEFAULT now(),
+    created date DEFAULT now(),
+    CONSTRAINT func_id PRIMARY KEY (func_id,name,changed)
+);
+
+CREATE TABLE proj_file
+(
+    name text NOT NULL,
+    major integer,
+    minor integer,
+    build integer,
+
+    file_id integer DEFAULT nextval('proj_file_id'),
+    func integer,
+    changed date DEFAULT now(),
+    created date DEFAULT now(),    
+    proj_id integer,
+
+    CONSTRAINT proj_file_id PRIMARY KEY (proj_id,name,changed)
+
+-
+
+CREATE TABLE files (
+    prog text NOT NULL,
+    name text,
+    id integer,
+    flag character(2),
+    len integer,
+    sort integer,
+    ver smallint,
+    org text,
+    date text
+);
+
+CREATE TABLE files (
+    folder text NOT NULL,
+    name text,
+    file_id integer,
+    flag character(2),
+    len integer,
+    sort integer,
+    ver smallint,
+    org text,
+    date text,
+    info text
+);
+
+
+
+CREATE TABLE prog (
+    name text NOT NULL,
+    src text,
+    label text,
+    flag text DEFAULT ''::text
+);
+
+
+CREATE SEQUENCE proj_id
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+
+ALTER TABLE ONLY prog
+    ADD CONSTRAINT prog_pkey PRIMARY KEY (name);
+
+
+REATE SEQUENCE file_id
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+CREATE TABLE settings (
+    usr text NOT NULL,
+    last_opend text,
+    search text
+);
+
+
+CREATE TABLE type (
+    type character(4) NOT NULL,
+    info text,
+    compile text,
+    link text
+);
+
+
+CREATE FUNCTION del_file() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$ begin select lo_unlink ( file_id ); end; $$;
+
+CREATE TRIGGER del_file BEFORE DELETE ON files FOR EACH ROW EXECUTE PROCEDURE del_file();
+

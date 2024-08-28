@@ -1,0 +1,538 @@
+
+#define fghGenBuffers glGenBuffers
+#define fghBindBuffer glBindBuffer
+#define fghBufferData glBufferData
+#define fghDeleteBuffers glDeleteBuffers
+#define fghEnableVertexAttribArray glEnableVertexAttribArray
+#define fghDisableVertexAttribArray glDisableVertexAttribArray
+#define fghVertexAttribPointer glVertexAttribPointer
+#define FGH_ARRAY_BUFFER GL_ARRAY_BUFFER
+#define FGH_STATIC_DRAW GL_STATIC_DRAW
+#define FGH_ELEMENT_ARRAY_BUFFER GL_ELEMENT_ARRAY_BUFFER
+
+
+#define CUBE_NUM_VERT           8
+#define CUBE_NUM_FACES          6
+#define CUBE_NUM_EDGE_PER_FACE  4
+#define CUBE_VERT_PER_OBJ        24 //(CUBE_NUM_FACES*CUBE_NUM_EDGE_PER_FACE)
+#define CUBE_VERT_ELEM_PER_OBJ  72 //(CUBE_VERT_PER_OBJ*3)
+#define CUBE_VERT_PER_OBJ_TRI   36 //(CUBE_VERT_PER_OBJ+CUBE_NUM_FACES*2)    /* 2 extra edges per face when drawing quads as triangles */
+
+dynfloat CUBE_v = // [CUBE_NUM_VERT*3] =
+     0.5f, 0.5f, 0.5f
+    -0.5f, 0.5f, 0.5f
+    -0.5f, -0.5f, 0.5f
+     0.5f, -0.5f, 0.5f
+     0.5f,-0.5f,-0.5f
+     0.5f, 0.5f,-0.5f
+    -0.5f, 0.5f,-0.5f
+    -0.5f,-0.5f,-0.5f
+end
+
+/* Normal Vectors */
+dynfloat CUBE_n  = // [CUBE_NUM_FACES*3] =
+     0.0f, 0.0f, 1.0f
+     1.0f, 0.0f, 0.0f
+     0.0f, 1.0f, 0.0f
+    -1.0f, 0.0f, 0.0f
+     0.0f,-1.0f, 0.0f
+     0.0f, 0.0f,-1.0f
+end
+
+/* Vertex indices, as quads, before triangulation */
+dynushort CUBE_vi = // [CUBE_VERT_PER_OBJ] =
+    0,1,2,3
+    0,3,4,5
+    0,5,6,1
+    1,6,7,2
+    7,4,3,2
+    4,7,6,5
+end
+
+
+int cubeCached
+dynfloat   CUBE_verts //[CUBE_VERT_ELEM_PER_OBJ]
+dynfloat   CUBE_norms //[CUBE_VERT_ELEM_PER_OBJ]
+dynushort  CUBE_vertIdxs  //[CUBE_VERT_PER_OBJ_TRI]
+
+func fghCubeGenerate ()
+    fghGenerateGeometryWithIndexArray (CUBE_NUM_FACES, CUBE_NUM_EDGE_PER_FACE, CUBE_v, CUBE_vi, CUBE_n, CUBE_verts, CUBE_norms, CUBE_vertIdxs);
+end
+
+int verDec [2][9] =
+0,1,2, 0,2,3, 0,0,0
+0,1,2, 0,2,4, 4,2,3
+end
+
+//~ short   vert4Decomp[6] = 0,1,2, 0,2,3             /* quad    : 4 input vertices, 6 output (2 triangles) */
+//~ short   vert5Decomp[9] = 0,1,2, 0,2,4, 4,2,3      /* pentagon: 5 input vertices, 9 output (3 triangles) */
+
+
+
+
+func fghGenerateGeometryWithIndexArray (int numFaces, int numEdgePerFace, & dynfloat vertices, & dynushort vertIndices, & dynfloat normals, & dynfloat vertOut, & dynfloat normOut, & ushort vertIdxOut )
+
+    int z, i,j,numEdgeIdxPerFace;
+
+    int outIdx  
+    int vertIdx 
+
+
+    //~ ushort   *vertSamps = NULL;
+    switch (numEdgePerFace)
+        case 3
+            /* nothing to do here, we'll draw with glDrawArrays */
+            break;
+        case 4
+            z = 1
+            //~ vertSamps = vert4Decomp;
+            numEdgeIdxPerFace = 6      /* 6 output vertices for each face */
+            break;
+        case 5
+            z = 2
+            //~ vertSamps = vert5Decomp;
+            numEdgeIdxPerFace = 9      /* 9 output vertices for each face */
+            break;
+    end
+    /*
+     * Build array with vertices using vertex coordinates and vertex indices
+     * Do same for normals.
+     * Need to do this because of different normals at shared vertices.
+     */
+    for (i=0; i<numFaces; i++)
+        int normIdx  
+        int faceIdxVertIdx  
+        
+        normIdx         = i*3
+        faceIdxVertIdx = i*numEdgePerFace  /* index to first element of "row" in vertex indices */
+        for (j=0; j<numEdgePerFace; j++)
+
+            outIdx  = i * numEdgePerFace * 3 + j * 3;
+            vertIdx = vertIndices[faceIdxVertIdx+j]*3;
+
+            vertOut[outIdx  ] = vertices[vertIdx  ];
+            vertOut[outIdx+1] = vertices[vertIdx+1];
+            vertOut[outIdx+2] = vertices[vertIdx+2];
+
+            normOut[outIdx  ] = normals [normIdx  ];
+            normOut[outIdx+1] = normals [normIdx+1];
+            normOut[outIdx+2] = normals [normIdx+2];
+        }
+
+        /* generate vertex indices for each face */
+        if ( z )
+            for (j=0; j<numEdgeIdxPerFace; j++)
+//~ #op_debug
+                vertIdxOut[i*numEdgeIdxPerFace+j] = faceIdxVertIdx + verDec [z - 1][j];
+            end
+//~ dump_var ( vertIdxOut )
+//~ dump_var ( faceIdxVertIdx )
+        end
+    }
+}
+
+func fghDrawGeometryWire( &float vertices, & dynfloat normals, int numVertices, & dynushort vertIdxs, int numParts, int numVertPerPart, \
+    int vertexMode, & dynushort vertIdxs2, int numParts2, int numVertPerPart2 )
+
+    fghDrawGeometryWire11 (vertices, normals, vertIdxs, numParts, numVertPerPart, vertexMode, vertIdxs2, numParts2, numVertPerPart2)
+}
+
+
+func fghCircleTable( & dynfloat sint, & dynfloat cost,  int n, int halfCircle )
+    int i;
+
+    /* Table size, the sign of n flips the circle direction */
+    int size1;
+
+    size1 = abs(n);
+    /* Determine the angle between samples */
+    float angle
+
+    angle = (halfCircle ? 1 : 2) * M_PI / ( ( n == 0 ) ? 1 : n );
+
+//~ mess ( angle )
+    /* Allocate memory for n samples, plus duplicate of first entry at the end */
+    //~ *sint = malloc(sizeof(GLfloat) * (size+1));
+    //~ *cost = malloc(sizeof(GLfloat) * (size+1));
+
+    /* Bail out if memory allocation fails, fgError never returns */
+/*
+    if (!(*sint) || !(*cost))
+    {
+        free(*sint);
+        free(*cost);
+        fgError("Failed to allocate memory in fghCircleTable");
+    }
+*/
+
+//~ mess ( "4" )
+
+    /* Compute cos and sin around the circle */
+
+    sint [0] = 0.0;
+    cost [0] = 1.0;
+
+    for (i=1; i<size1; i++)
+         sint [i] = sin (angle*i);
+         cost [i] = cos (angle*i);
+    end
+
+    if (halfCircle)
+        sint [size1] =  0.0f  /* sin PI */
+        cost [size1] = -1.0f  /* cos PI */
+    else
+        /* Last sample is duplicate of the first (sin or cos of 2 PI) */
+        sint [size1] = sint [0];
+        cost [size1] = cost [0];
+    end
+}
+
+func fghCube( float dSize, int useWireMode )
+    dynfloat vertices,vertIdxs;
+    ushort vertIdxs2 
+
+    if (!cubeCached)
+        fghCubeGenerate();
+        cubeCached = TRUE;
+    }
+//~ info ( "gris!" )
+//~ trace ( 2,2 )
+    if (dSize!=1.f)
+        /* Need to build new vertex list containing vertices for cube of different size */
+        int i;
+
+        //~ vertices = malloc(CUBE_VERT_ELEM_PER_OBJ * sizeof(GLfloat));
+
+        /* Bail out if memory allocation fails, fgError never returns */
+
+        for (i=0; i<CUBE_VERT_ELEM_PER_OBJ; i++)
+            vertices[i] = dSize*CUBE_verts[i];
+
+        end
+
+    else
+        foreach ( CUBE_verts )      //missing memcopy and cube_verts is a index ptr
+            vertices [CUBE_verts] = CUBE_verts [];
+        end
+    end
+
+//~ info ( "gris" )
+
+    if (useWireMode )
+        fghDrawGeometryWire(vertices, CUBE_norms, CUBE_VERT_PER_OBJ, \
+            vertIdxs2,CUBE_NUM_FACES, CUBE_NUM_EDGE_PER_FACE,GL_LINE_LOOP, vertIdxs2,0,0);
+    else
+        //~ fghDrawGeometrySolid(vertices, CUBE_norms, 0, CUBE_VERT_PER_OBJ, CUBE_vertIdxs, 1, CUBE_VERT_PER_OBJ_TRI);
+//~ info ( "gris2" )
+
+  //~ dump_var ( vertices )
+
+  //~ dump_var ( CUBE_norms )
+  //~ dump_var ( vertIdxs )
+  //~ dump_var ( CUBE_vertIdxs )
+
+fghDrawGeometrySolid(vertices,CUBE_norms,vertIdxs ,CUBE_VERT_PER_OBJ, CUBE_vertIdxs,1, CUBE_VERT_PER_OBJ_TRI )
+
+    end
+}
+
+func fghGenerateSphere (float radius, int slices, int stacks, & dynfloat vertices, & dynfloat normals, & int nVert)
+    int i,j;
+    int idx = 0    /* idx into vertex/normal buffer */
+    float x,y,z;
+
+    /* Pre-computed circle */
+    dynfloat sint1, cost1
+    dynfloat sint2, cost2
+
+//~ mess ( vertices [0] )
+
+    /* number of unique vertices */
+    if (slices==0 || stacks<2)
+        /* nothing to generate */
+        nVert = 0;
+        return;
+    }
+    nVert = slices * (stacks - 1)+2;
+
+//~ mess ( "5" )
+
+#if 0
+    if ((nVert) > 65535)
+        /*
+         * limit of glushort, thats 256*256 subdivisions, should be enough in practice. See note above
+         */
+        fgWarning("fghGenerateSphere: too many slices or stacks requested, indices will wrap");
+#endif
+    /* precompute values on unit circle */
+
+    fghCircleTable (  sint1, cost1,-slices,FALSE)
+    fghCircleTable ( sint2, cost2, stacks,TRUE)
+
+    /* Allocate vertex and normal buffers, bail out if memory allocation fails */
+    //~ *vertices = malloc((*nVert)*3*sizeof(GLfloat));
+    //~ *normals  = malloc((*nVert)*3*sizeof(GLfloat));
+
+    /* top */
+//~ break_point
+    vertices[0] = 0.0f;
+    vertices[1] = 0.0f;
+    vertices[2] = radius;
+    normals [0] = 0.0f;
+    normals [1] = 0.0f;
+    normals [2] = 1.0f;
+    idx = 3;
+//~ mess ( "6" )
+
+    /* each stack */
+    for( i=1; i<stacks; i++ )
+        for(j=0; j<slices; j++)
+            x = cost1[j]*sint2[i];
+            y = sint1[j]*sint2[i];
+            z = cost2[i];
+
+            vertices [idx  ] = x*radius;
+            vertices [idx+1] = y*radius;
+            vertices [idx+2] = z*radius;
+            normals  [idx  ] = x;
+            normals  [idx+1] = y;
+            normals  [idx+2] = z;
+            idx+=3
+        end
+    end
+
+    /* bottom */
+    vertices[idx  ] =  0.f;
+    vertices[idx+1] =  0.f;
+    vertices[idx+2] = -radius;
+    normals [idx  ] =  0.f;
+    normals [idx+1] =  0.f;
+    normals [idx+2] = -1.f;
+
+end
+
+func fghDrawGeometrySolid /* 11 */ (& dynfloat vertices, & dynfloat normals, & dynfloat textcs, int numVertices, & dynushort vertIdxs, int numParts, int numVertIdxsPerPart )
+    int i;
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    glVertexPointer(3, GL_FLOAT, 0, & vertices);
+    glNormalPointer(GL_FLOAT, 0, & normals);
+
+/*
+mess ( vertIdxs [4] )
+mess ( vertIdxs [5] )
+mess ( vertIdxs [14] )
+mess (vertIdxs [15] )
+mess ( numVertIdxsPerPart )
+*/
+
+/*
+   if (textcs)
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glTexCoordPointer(2, GL_FLOAT, 0, & textcs);
+    } */
+
+    if (!numVertices)
+        glDrawArrays(GL_TRIANGLES, 0, numVertices);
+    else
+        if (numParts>1)
+            for (i=0; i<numParts; i++)
+                glDrawElements(GL_TRIANGLE_STRIP, numVertIdxsPerPart, GL_UNSIGNED_SHORT, & vertIdxs +i*numVertIdxsPerPart   );
+            end
+        else
+              glDrawElements(GL_TRIANGLES, numVertIdxsPerPart, GL_UNSIGNED_SHORT, & vertIdxs );
+        end
+    end
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    if (textcs)
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    end
+}
+
+func fghDrawGeometryWire11 ( & dynfloat vertices, & dynfloat normals, & dynushort vertIdxs, int numParts, int numVertPerPart, int vertexMode, & dynushort vertIdxs2, int numParts2, int numVertPerPart2 )
+    int i;
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    glVertexPointer(3, GL_FLOAT, 0, & vertices);
+    glNormalPointer(GL_FLOAT, 0, & normals);
+
+
+
+    if (sizeof ( vertIdxs ) == 2 /* !vertIdxs */ )
+        for (i=0; i<numParts; i++)
+            glDrawArrays(vertexMode, i*numVertPerPart, numVertPerPart);
+        end
+    else
+        for (i=0; i<numParts; i++)
+            glDrawElements(vertexMode,numVertPerPart,GL_UNSIGNED_SHORT, & vertIdxs+i*numVertPerPart);
+        end
+    end
+
+    if (numParts2)
+        for (i=0; i<numParts2; i++)
+            glDrawElements(GL_LINE_LOOP,numVertPerPart2,GL_UNSIGNED_SHORT,& vertIdxs2+i*numVertPerPart2);
+        end
+    end
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+}
+
+#if 1
+
+func fghSphere( float radius, int slices, int stacks, int useWireMode )
+
+    int i,j,idx, nVert, offset
+    dynfloat vertices
+    dynfloat normals, textcs
+    dynushort sliceIdx, stackIdx
+    dynushort stripIdx
+
+//~ mess ( "8" )
+    /* Generate vertices and normals */
+
+    fghGenerateSphere (radius,slices,stacks, vertices,normals,nVert);
+
+
+//~ info ( radius )
+#if 0
+info ( vertices [2] ) 
+info ( vertices [3] ) 
+info ( vertices [4] ) 
+info ( vertices [5] ) 
+
+#endif
+//~ info ( normals [3] )
+
+
+
+    if (nVert==0)
+        /* nothing to draw */
+        return;
+    end
+
+    if (useWireMode )
+        /* First, generate vertex index arrays for drawing with glDrawElements
+         * We have a bunch of line_loops to draw for each stack, and a
+         * bunch for each slice.
+         */
+
+        //~ sliceIdx = malloc(slices*(stacks+1)*sizeof(GLushort));
+        //~ stackIdx = malloc(slices*(stacks-1)*sizeof(GLushort));
+/*
+        if (!(stackIdx) || !(sliceIdx))
+            //~ free(stackIdx);
+            //~ free(sliceIdx);
+            fgError("Failed to allocate memory in fghSphere");
+        }
+*/
+        /* generate for each stack */
+        idx=0
+        for (i=0; i<stacks - 1; i++)
+            offset = 1 + i * slices           /* start at 1 (0 is top vertex), and we advance one stack down as we go along */
+            for (j=0; j<slices; j++)
+                stackIdx [idx] = offset+j;
+                idx++
+            }
+        }
+
+        /* generate for each slice */
+        idx=0
+        for (i=0; i<slices; i++)
+            offset = 1 + i                  /* start at 1 (0 is top vertex), and we advance one slice as we go along */
+            sliceIdx[idx++] = 0                    /* vertex on top */
+            for (j=0; j<stacks - 1; j++)
+                sliceIdx[idx] = offset+j*slices;
+                idx++
+            }
+            sliceIdx[idx++] = nVert - 1              /* zero based index, last element in array... */
+        }
+
+        /* draw */
+    
+        fghDrawGeometryWire(vertices,normals,nVert, sliceIdx,slices,stacks+1,GL_LINE_STRIP, stackIdx,stacks - 1,slices);
+
+
+        //~ fghDrawGeometryWire (vertices, normals, nVert, sliceIdx, slices, GL_LINE_LOOP, slices, 0, 0);
+
+        //~ fghDrawGeometryWire(vertices, normals,nVert, sliceIdx,slices,stacks+1,GL_LINE_STRIP, stackIdx,stacks - 1,slices, -1, -1);
+
+
+
+        /* cleanup allocated memory */
+        //~ free(sliceIdx);
+        //~ free(stackIdx);
+    else
+        /* First, generate vertex index arrays for drawing with glDrawElements
+         * All stacks, including top and bottom are covered with a triangle
+         * strip.
+         */
+        /* Create index vector */
+
+        /* Allocate buffers for indices, bail out if memory allocation fails */
+        //~ stripIdx = malloc((slices+1)*2*(stacks)*sizeof(GLushort));
+
+        /* top stack */
+        idx=0
+        for (j=0;  j<slices;  j++)
+            stripIdx[idx  ] = j+1              /* 0 is top vertex, 1 is first for first stack */
+            stripIdx[idx + 1] = 0;
+            idx+=2
+        }
+        stripIdx[idx  ] = 1                    /* repeat first slice's idx for closing off shape */
+        stripIdx[idx + 1] = 0;
+        idx+=2;
+
+        /* middle stacks: */
+        /* Strip indices are relative to first index belonging to strip, NOT relative to first vertex/normal pair in array */
+        for (i=0; i<stacks - 2; i++)
+            offset = 1+i*slices                    /* triangle_strip indices start at 1 (0 is top vertex), and we advance one stack down as we go along */
+            for (j=0; j<slices; j++)
+                stripIdx[idx  ] = offset+j+slices;
+                stripIdx[idx+1] = offset+j;
+                idx+=2
+            }
+            stripIdx[idx  ] = offset+slices        /* repeat first slice's idx for closing off shape */
+            stripIdx[idx+1] = offset;
+            idx+=2
+        }
+//~ mess ( "7" )
+
+        /* bottom stack */
+
+        offset = 1+(stacks - 2)*slices               /* triangle_strip indices start at 1 (0 is top vertex), and we advance one stack down as we go along */
+        for (j=0; j<slices; j++)
+            stripIdx[idx  ] = nVert - 1              /* zero based index, last element in array (bottom vertex)... */
+            stripIdx[idx+1] = offset+j;
+            idx+=2
+        }
+        stripIdx[idx  ] = nVert - 1                  /* repeat first slice's idx for closing off shape */
+        stripIdx[idx+1] = offset;
+#if 0
+info ( idx )
+info ( stripIdx [1] )
+info ( stripIdx [2] )
+info ( stripIdx [3] )
+info ( stripIdx [4] )
+#endif 
+
+        /* draw */
+        fghDrawGeometrySolid(vertices,normals,textcs ,nVert,stripIdx,stacks,(slices+1)*2 )
+
+        /* cleanup allocated memory */
+        //~ free(stripIdx);
+    }
+
+    /* cleanup allocated memory */
+    //~ free(vertices);
+    //~ free(normals);
+end
+
+#endif
+
