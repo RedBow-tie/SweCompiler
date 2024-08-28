@@ -16,8 +16,8 @@ swe64.exe   64 bit  Supports PostgreSQL, SqLite, Odbc, OpenGL
 
 ## md5sum
 
-swe.exe     ec28f87298020f80713c15f8a612edaf
-sweq.exe    9b09ee1aac7ee1fb6626c3a2d56c69d4
+swe.exe     1f23ab1964b95dc1f0b73b3c22bd8942
+sweq.exe    1355dc1533dad9febab18f38d1b34dfe
 swe64.exe   1f97f87520f1f9eacd3bc7765d905f09
 
 ## Compiler

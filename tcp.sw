@@ -5,7 +5,7 @@ tcp a
 
 mtext taa
 asdkja  asd
- JAG ÄR EN APA
+ Testing
 end
 
 PROCINFO proc
@@ -98,7 +98,6 @@ tcp_data1 ( tcp a, text x )  //
     mess ( a )
 end
 */
-//~ #yy_debug 2
 
 tcp_data ( tcp a, text x )  //fastcgi
     int i, j
@@ -117,7 +116,7 @@ mess ( y )
 
 /*
 
-//~ #op_debug
+
                 fcgi.contentLengthB0 = 0
 
             x1 = fcgi
@@ -185,7 +184,7 @@ char xx  300
 //~ mess ( dump (fcgi ) ) 
 
 xx = ""
-//~ #op_debug
+
             xx += fcgi
 //~ mess ( dump (xx ) ) 
 
