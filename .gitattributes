@@ -1,3 +1,2 @@
-*.sw linguist-vendored
 *.sw linguist-language=Other
- 
+*.sw linguist-detectable=true
