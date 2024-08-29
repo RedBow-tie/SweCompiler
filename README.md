@@ -40,3 +40,26 @@ end
 
 Source size is about 110 000 lines.
 
+## Editor
+
+In the demo there is an embryo to a IDE, but it’s not complete.
+So I’m using the [SciTE](https://scintilla.org/SciTE.html) editor (this editor is also the base for my IDE). 
+For an easy use of this Compiler, do this:
+
+Open the cpp.properties (under options).
+Change line 4 to: file.patterns.cpp=*.sw;*.c;*.cc;*.cpp;*.cxx;*.h;*.hh;*.hpp;*.hxx;*.ipp;*.m;*.mm;*.sma
+
+Add this to the end:
+```
+command.compile.*.sw=E:\SweCompiler-main\swe.exe $(FileNameExt)
+command.build.*.sw=E:\SweCompiler-main\64\swe64.exe $(FileNameExt)
+command.go.*.sw=E:\SweCompiler-main\sweq.exe $(FileNameExt)
+```
+
+| Keys | Program |
+| --- | --- |
+| ctrl-F7 | swe.exe |
+| F7 | swe64.exe    |
+| F5 | sweq.exe     |
+
+
