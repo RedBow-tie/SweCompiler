@@ -1,5 +1,5 @@
 # The Swedish Compiler
-This compiler is focusing on easy gui and databases. It’s support PostgreSQL, SqLite, Odbc. It is running under Linux too (wine). OpenGL support (only 64 bits version), easy printer layout (non gui) and serial communication (demo is coming). I been used it for a long time so it should be stabile (32 bits ver).
+This compiler is focusing on easy gui and databases. It’s support PostgreSQL, SqLite, Odbc. It is running under Linux too (wine). OpenGL support (only 64 bits version), easy printer layout (non gui) and serial communication (demo is coming). I've been used it for a long time so it should be stabile (32 bits ver).
 
 Sorry no source available (yet). A little affirmation this program doesn’t contain any call home code or any ads.
 
@@ -48,7 +48,7 @@ In the demo there is an embryo to a IDE, but it’s not complete.
 So I’m using the [SciTE](https://scintilla.org/SciTE.html) editor (this editor is also the base for my IDE). 
 For an easy use of this Compiler, do this:
 
-Open the cpp.properties (under options).
+Download SciTE editor. Open the cpp.properties (under options).
 Change line 4 to: file.patterns.cpp=*.sw;*.c;*.cc;*.cpp;*.cxx;*.h;*.hh;*.hpp;*.hxx;*.ipp;*.m;*.mm;*.sma
 
 Add this to the end:
