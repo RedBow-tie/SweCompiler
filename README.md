@@ -1,6 +1,8 @@
 # The Swedish Compiler
 This compiler is focusing on easy gui and databases. It’s support PostgreSQL, SqLite, Odbc. It is running under Linux too (wine). OpenGL support (only 64 bits version), easy printer layout (non gui) and serial communication (demo is coming). I been used it for a long time so it should be stabile (32 bits ver).
 
+Sorry no source available (yet). A little affirmation this program doesn’t contain any call home code or any ads.
+
 ##  Demo & test
 
 Most of the program here is just for test/debug propose and display of the syntax (please don't laugh as most of it is nonsense).
