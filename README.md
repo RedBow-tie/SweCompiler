@@ -42,6 +42,8 @@ end
 
 Source size is about 110 000 lines.
 
+As widgets id’s is created automatic (no #define needed) so can a syntax error down in the program results in allot of errors at the beginning. So the first error in the list doesn’t actually be an error. Only just a result of a missing creation of a widget id. The compiler is a two pass compiler.
+
 ## Editor
 
 In the demo there is an embryo to a IDE, but it’s not complete.
